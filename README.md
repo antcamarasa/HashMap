@@ -1,7 +1,5 @@
 # HashMap
 Build strong fondation of hashmap
-> Colonnes : **#**(W3R), **Exercice**, **Objectif clé**, **Tags**, **Niveau**.
----
 
 ## I. Opérations de base sur un dictionnaire simple
 
