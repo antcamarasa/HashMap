@@ -339,3 +339,42 @@ Résumé des types hashable et non hashables :
 
 ### Deep dive dans la fonction hash()
 
+Une autre caractéristique intéressante de hash() est qu’elle produit toujours une sortie de taille fixe, quelle que soit la taille de l'entrée.
+
+En Python, la valeur de hachage est un entier d’une magnitude modérée. Il peut parfois s’agir d’un nombre négatif, il faut donc en tenir compte si l'on souhaite utiliser les valeurs de hachage d’une manière ou d’une autre :
+
+                  >>> hash("Lorem")
+                  -972535290375435184
+
+#### Sortie de taille fixe = perte d'information
+
+une fonction de hachage prend une entrée qui peut être tré grande (un nombre, une chaine) l'entrée est donc une infinté de possibilité mais la fonction de hash fabrique toujours une sortie de taille fixe(un entier de 64 bits par exemple).
+
+Donc Donc, beaucoup d’informations de l’entrée ne peuvent pas être représentées dans cet espace limité : elles sont irrémédiablement perdues pendant la transformation.
+
+ATTENTION A DEVELLOPER POURQUOI ON PERD DE L'INFO ??
+
+#### Projection d’un infini vers un fini → collisions inévitables
+
+Mathématiquement, il y a beaucoup plus de valeurs possibles en entrée (pratiquement infinies) que d’étiquettes possibles en sortie (espace fini).
+
+Donc deux entrées différentes finiront parfois par donner la même sortie — c’est une collision.
+
+Principe : le principe des tiroirs (pigeonhole) dit : si tu mets 101 objets dans 100 tiroirs, au moins un tiroir contiendra 2 objets.
+
+Ici : objets = entrées possibles, tiroirs = valeurs de hachage disponibles.
+
+#### Exemple concret très simple (pour visualiser)
+
+Imaginons une fonction de hachage très naïve : h(x) = x % 10 (reste de la division par 10).
+- Entrées possibles : tous les entiers (infini).
+- Sorties possibles : seulement 10 valeurs (0 à 9).
+Donc 12, 22, 32 produiront tous 2 → collision.
+
+ATTENTION POURQUOI 2 COLLISION ??
+
+Même les fonctions sophistiquées ne peuvent pas éviter les collisions : elles peuvent les rendre rares, pas impossibles.
+
+Acceptable : l’objectif d’un hachage n’est pas de reconstruire les données originales mais d’obtenir un résumé compact permettant comparaison, indexation rapide, etc. Tant que les collisions sont rares et bien gérées, tout va bien.
+
+Dangereux : si trop de collision (volontairement ou non), les performances d’une table de hachage chutent (recherches lentes) et des attaques DoS peuvent en profiter.
