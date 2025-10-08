@@ -1,5 +1,3 @@
----
-
 ## Hashing  
 
 ### Table des matières
