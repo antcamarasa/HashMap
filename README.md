@@ -211,5 +211,46 @@ En pratique, le hachage ne fonctionne pas avec toutes les clés, mais la plupart
 
 Et si tu respectes certaines règles, tu pourras aussi créer tes propres types hachables.
 
-### Understand the Hash Function
-...
+--- 
+
+### Qu’est-ce qu’une fonction de hachage ?
+
+Une fonction de hachage est une formule mathématique (ou un algorithme) qui transforme des données de n’importe quelle taille (un texte, un fichier, un mot de passe, etc.) en une valeur de taille fixe, appelée valeur de hachage ou empreinte (hash value).
+
+👉 Exemple :
+- Tu donnes à la fonction le mot "bonjour".
+- Elle te renvoie un nombre (ou une suite d’octets) du genre 3984127391.
+- Si tu lui redonnes "bonjour", elle renverra toujours le même résultat.
+
+Mais si tu modifies une seule lettre ("Bonjour" avec un B majuscule), tu obtiendras une empreinte complètement différente.
+
+
+#### A quoi ça sert ? 
+
+Une fonction de hash a deux rôles principaux : 
+1. Identifier rapidement une donnée
+   - Dans une table de hachage(comme un dict en python), elle sert a retourver un élément très vite, sans parcourir toute la colleciton.
+Exemple : Python utilise hash() pour savoir ou stocker et ou retrouver une clé dans un dict ou un set.
+
+2. Vérifier l'intégrité ou protéger des données
+   - On peut comparer deux empreintes pour vérifier qu'un fichier ou un mot de passe n'a pas été modifié.
+Exemple : quand tu télécharges un fichier Linux avec une somme de contrôle SHA-256, tu compares la valeur de hachage locale à celle fournie sur le site.
+
+#### 🔹 Caractéristiques d’une bonne fonction de hachage
+
+Une bonne fonction de hachage doit :
+- toujours produire la même empreinte pour les mêmes données,
+- générer des empreintes différentes pour des données différentes,
+- être rapide à calculer,
+et, idéalement, répartir les valeurs de manière uniforme (pour éviter les collisions, c’est-à-dire deux données différentes donnant le même hash).
+
+| Entrée (donnée) | Fonction de hachage   | Sortie (empreinte)         |
+| --------------- | --------------------- | -------------------------- |
+| "bonjour"       | `hash()` ou `SHA-256` | `3984127391` ou `aab3f...` |
+| "Bonjour"       | `hash()` ou `SHA-256` | `89234aa0` ou `f03b9...`   |
+| "bonjour"       | `hash()` ou `SHA-256` | `3984127391` ou `aab3f...` |
+
+On remarque que la lette b en majuscule et en minuscle ne donne pas la meme clé de hash.
+
+Une fonction de hachage, c’est donc :
+🔑 Un moyen rapide et fiable de transformer une donnée en une “empreinte” unique et courte, pour l’identifier, la retrouver ou en vérifier l’intégrité.
