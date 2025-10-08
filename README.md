@@ -254,3 +254,88 @@ On remarque que la lette b en majuscule et en minuscle ne donne pas la meme clé
 
 Une fonction de hachage, c’est donc :
 🔑 Un moyen rapide et fiable de transformer une donnée en une “empreinte” unique et courte, pour l’identifier, la retrouver ou en vérifier l’intégrité.
+
+### Examinons la fonction integrée hash() de python
+
+Avant d’essayer d’implémenter notre propre fonction de hachage, on va prendre un instant pour analyser la fonction hash() intégrée à Python afin d’en dégager les propriétés essentielles.
+Cela nous aidera à comprendre les défis liés à la conception d’une fonction de hachage.
+
+💡 Remarque :
+Le choix d’une fonction de hachage influence fortement les performances d’une table de hachage (comme un dictionnaire).
+C’est pourquoi on se base généralement sur la fonction intégrée hash(), plutôt que d’en créer une soi-même.
+
+#### Que fait hash() ?
+
+La fonction hash() transforme n’importe quelle donnée (nombre, texte, etc.) en un nombre entier.
+Ce nombre est la valeur de hachage.
+
+Par exemple :
+
+      >>> hash(3.14)
+      322818021289917443
+
+      >>> hash("Lorem")
+      7677195529669851635
+      
+Tu peux l’utiliser sur des nombres, des chaînes, voire des objets plus complexes.
+
+#### Pourquoi les résultats changent ?
+Si tu testes hash() sur une même chaîne de caractères ou n'importe quel type hachable(voir plus bas) dans une même session Python, tu obtiens toujours le même résultat :
+
+      >>> hash("Lorem")
+      7677195529669851635
+
+      >>> hash("Lorem")
+      7677195529669851635
+
+➡️ La fonction est donc déterministe :
+Elle renvoie toujours la même valeur pour la même entrée, tant que ton environnement Python ne change pas.
+
+Mais si tu redémarres Python(avec la commande python -c), tu verras que la valeur de hachage pour une chaîne change :
+            
+            $ python -c 'print(hash("Lorem"))'
+            6182913096689556094
+
+            $ python -c 'print(hash("Lorem"))'
+            1756821463709528809
+
+Pourquoi ? 
+Parce que Python ajoute une part d’aléatoire (appelée hash randomization) pour les chaînes, tuples, bytes, fronzenset, afin d’éviter certaines attaques de sécurité.
+
+Attention cette randomnisation ne s'applique pas à : 
+- int, float, bool, None
+- Les objets définis par l'utilisateur(sauf exception)
+
+Pourquoi cette distinction ? 
+
+Les attaques DoS visaient principalement les tables de hachage (comme les dictionnaires) en utilisant des clés textuelles provoquant volontairement des collisions, car ce sont ces types qui servent le plus souvent de clés.
+
+
+#### Qu'est-ce qu'un type hachable et quels sont les types hachables ?
+
+Un type hachables est un type immuable tout simplement. Pour que notre fonction de hash puisse fonctionner notre objet(peu importe son type) ne doit pas changer sinon la clés de hachages ne sera plus la même et on perdra la contenu stocker pointé par notre clé de hash. 
+
+Résumé des types hashable et non hashables :
+| Type                           | Déterminisme (dans une même session)  | Même résultat entre plusieurs sessions ?                |
+| ------------------------------ | ------------------------------------  | ------------------------------------------------------  |
+| `int`, `float`, `bool`, `None` | ✅ Oui                                | ✅ Oui (pas d’aléa)                                     |
+| `str`, `bytes`, `tuple`        | ✅ Oui                                | ❌ Non (randomisation activée)                          |
+| `frozenset`                    | ✅ Oui                                | ❌ Non (car dépend d’objets potentiellement randomisés) |
+| `dict`, `list`, `set`          | ❌ Non hachable → `TypeError`         | —                                                       |
+
+👉 Donc :
+- Les objets immuables simples (nombres, booléens) ont un hachage fixe partout.
+- Les chaînes, tuples et certains objets immuables complexes ont un hachage fixe uniquement dans la session courante.
+- Les objets mutables (list, dict, set) ne sont pas hachables du tout, car leur contenu peut changer.
+
+            # Exemple avec un objet mutable : IMPOSSIBLE
+            >>> hash([1, 2, 3])
+            Traceback (most recent call last):
+            File "<stdin>", line 1, in <module>
+            TypeError: unhashable type: 'list'
+
+
+--- 
+
+### Deep dive dans la fonction hash()
+
