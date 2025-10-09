@@ -348,33 +348,215 @@ En Python, la valeur de hachage est un entier d’une magnitude modérée. Il pe
 
 #### Sortie de taille fixe = perte d'information
 
-une fonction de hachage prend une entrée qui peut être tré grande (un nombre, une chaine) l'entrée est donc une infinté de possibilité mais la fonction de hash fabrique toujours une sortie de taille fixe(un entier de 64 bits par exemple).
+Une fonction de hachage prend une entrée qui peut être très grand, cela peut être : 
+ - Une string 'bonjour'
+ - Un long texte "Guerre et paix"
+ - un fichier
+ - un nombre
+Il n'y a aucune limite a la taille de ce que l'on lui donne. Donc le nombre de valeurs possibles en entrée est immense, pratiquement infini.
 
-Donc Donc, beaucoup d’informations de l’entrée ne peuvent pas être représentées dans cet espace limité : elles sont irrémédiablement perdues pendant la transformation.
+La fonction de hash fabrique toujours une sortie de taille fixe : 
+- SHA-256 produit 256 bits, toujours.
+- Une table de hachage peut utiliser 64 bits, toujours.
+Même si notre entrée fait 1 ou 10 gigas, notre sortie(le hash) aura exactement la même taille que n'importe quelle autre sortie de la hash function. 
 
-ATTENTION A DEVELLOPER POURQUOI ON PERD DE L'INFO ??
+Cela signifie que beacoup d'informations de l'entrée ne peuvent pas être représentées.
 
-#### Projection d’un infini vers un fini → collisions inévitables
+Car on compresse une quantité d'informations énorme dans un petit espace fixe(le hash)
 
-Mathématiquement, il y a beaucoup plus de valeurs possibles en entrée (pratiquement infinies) que d’étiquettes possibles en sortie (espace fini).
+Quand deux entrées différentes donnent la même sortie, on appelle ça une collision.
+Et puisque la fonction ne garde qu’un nombre fixe de bits, elle oublie le reste de l’information.
+Tu ne peux donc jamais remonter à l’entrée originale à partir du hash.
 
-Donc deux entrées différentes finiront parfois par donner la même sortie — c’est une collision.
+C’est ça la perte d’information.
 
-Principe : le principe des tiroirs (pigeonhole) dit : si tu mets 101 objets dans 100 tiroirs, au moins un tiroir contiendra 2 objets.
+#### Explications 
 
-Ici : objets = entrées possibles, tiroirs = valeurs de hachage disponibles.
+La fonction de hachage détruit volontairement une partie de l’information. Elle garde seulement une empreinte compacte, pas le contenu lui-même.
 
-#### Exemple concret très simple (pour visualiser)
+Tu ne peux pas “inverser” la fonction, car il n’y a pas assez de place dans la sortie pour tout représenter.
+C’est un processus à sens unique.
 
-Imaginons une fonction de hachage très naïve : h(x) = x % 10 (reste de la division par 10).
-- Entrées possibles : tous les entiers (infini).
-- Sorties possibles : seulement 10 valeurs (0 à 9).
-Donc 12, 22, 32 produiront tous 2 → collision.
+Alors à quoi sert le hash si on perd l’info ?
 
-ATTENTION POURQUOI 2 COLLISION ??
+Le but n’est pas de retenir l’information, mais de créer une clé courte, représentative et quasi unique.
 
-Même les fonctions sophistiquées ne peuvent pas éviter les collisions : elles peuvent les rendre rares, pas impossibles.
+| Cas d’usage                          | Rôle du hash                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| **Table de hachage (programmation)** | Trouver ou ranger une valeur plus vite grâce à une clé numérique            |
+| **Mot de passe**                     | On stocke le hash, pas le mot de passe (pour la sécurité)                   |
+| **Fichier téléchargé**               | Vérifier qu’il n’a pas été modifié (si le hash change, le fichier a changé) |
+| **Blockchain**                       | Identifier de manière unique chaque bloc                                    |
 
-Acceptable : l’objectif d’un hachage n’est pas de reconstruire les données originales mais d’obtenir un résumé compact permettant comparaison, indexation rapide, etc. Tant que les collisions sont rares et bien gérées, tout va bien.
+Le hash est une étiquette numérique, pas une copie du contenu.
 
-Dangereux : si trop de collision (volontairement ou non), les performances d’une table de hachage chutent (recherches lentes) et des attaques DoS peuvent en profiter.
+#### Rapport entre Dict python et la fonction hash()
+
+Quand on fait ceci :
+
+            d = {"nom" : "Alice"}
+
+Python fait plusieurs choses en interne : 
+1. Il calcule le hash de la clé "Nom" -> un entier (ex -73459201).
+2. Il s'en sert pour trouver ou ranger la praire clé-valeur dans la table (comme une adresse de case mémoire)
+3. Et surout, il stocke a la fois :
+   - Le hash
+   - La clé originale ("nom")
+   - La valeur associé ("Alice")
+
+                  Par exemple :
+                  d = {"nom": "Alice", "âge": 25, "ville": "Paris"}
+
+                  Python va calculer le hash pour chaque clé :
+                  hash("nom")   -> 432819
+                  hash("age")   -> 992319
+                  hash("ville") -> 128334
+
+                  Ensuitre transformer ces gros nombres en index dans le tableau
+                  hash % taille_tableau
+
+                  Si la table fait 8 cases :
+                  432819 % 8 = 3
+                  992312 % 8 = 0
+                  128334 % 8 = 6
+
+                  Et placer chaque pair, clé/valeur a cet index :
+                  TABLE DE HACHAGE EN MÉMOIRE
+
+                +-----------------------------------------------------------+
+                | 0 | → [clé="âge",   valeur=25,     hash=992312]           |
+                | 1 | → None                                                |
+                | 2 | → None                                                |
+                | 3 | → [clé="nom",   valeur="Alice", hash=432819]          |
+                | 4 | → None                                                |
+                | 5 | → None                                                |
+                | 6 | → [clé="ville", valeur="Paris", hash=128334]          |
+                | 7 | → None                                                |
+                +-----------------------------------------------------------+
+
+               Chaque “flèche” (→) pointe vers une zone mémoire où Python stocke le petit objet (clé, valeur).
+
+
+Donc Python ne perd jamais l’information d’origine. Le hash sert seulement à accélérer la recherche.
+
+
+#### Et s’il y a deux clés avec le même hash ? Les collisions de hachage
+
+Comme nous l'avons vu, les collisions sont inévitable car en entré on parle d'espace infini et en sortie d'espace fini. Mais une bonne fonction de hash a pour objectif de limité les coliisions, car si il y en a trop alors la table de hachage n'est plus performante.
+
+Les collisions de hachage sont un concept essentiel dans les tables de hachage, on y reviendra plus tard dans l'implémentation.
+
+Pour l'instant on considère qu'elles sont indésirables, donc a éviter autant que possible, car elles peuvent entraîner des recherches très inefficaces et même être exploitées par des pirates informatiques.
+
+Ainsi, une bonne fonction de hachage doit minimiser la probabilité de collision, à la fois pour des raisons d’efficacité et de sécurité.
+
+### Répartition uniforme des valeurs de hachage
+En pratique, cela signifie souvent que la fonction de hachage doit attribuer des valeurs réparties uniformément dans l’espace disponible.
+
+#### L’espace disponible”, c’est quoi ?
+C'est l'ensemble des cases possibles dans ta table de hachage.
+- Si ta tale a 8 cases -> l'espace disponible, c'est {0, 1, 2, 3, 4, 5, 6, 7}.
+- Si elle a 1000 cases → l’espace disponible, c’est {0, 1, 2, ..., 999}
+
+Une bonne fonction de hachage doit générer des nombres qui se répartissent aussi uniformément que possible dans cet espace.
+
+Exemple on a deux cases, il faut qu'elle se remplissent simultanément : 
+
+                        0 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ (51)
+                        1 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■   (49)
+
+Une mauvaise implémentation serait :
+
+                        0 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ (100)
+                        1 ■                                                     (1)
+Pourquoi ?
+
+La case 0 contient 100 élément donc le risque de colission est grand, à l'inverse la case 1 contient 1 seul élément donc le risque de collision est tres faible
+
+En revanche, si la répartition est uniforme :
+- Chaque clé est à peu près à une case unique
+- L’accès devient quasi instantané (O(1)).
+
+### 🔹 Identifier les propriétés d’une fonction de hachage
+Voici un résumé de ces caractéristiques, en comparant une fonction de hachage “classique” et une fonction de hachage cryptographique :
+
+| Caractéristique        | Fonction de hachage | Fonction de hachage cryptographique |
+| ---------------------- | ------------------- | ----------------------------------- |
+| Déterministe           | ✔️                  | ✔️                                  |
+| Entrée universelle     | ✔️                  | ✔️                                  |
+| Sortie de taille fixe  | ✔️                  | ✔️                                  |
+| Calcul rapide          | ✔️                  | ✔️                                  |
+| Répartition uniforme   | ✔️                  | ✔️                                  |
+| Répartition aléatoire  |                     | ✔️                                  |
+| Graine aléatoire       |                     | ✔️                                  |
+| Fonction à sens unique |                     | ✔️                                  |
+| Effet d’avalanche      |                     | ✔️                                  |
+
+Deterministe  = Sortie toujours égal pour une même entrée.
+Effet d'avalanche signifie que même un changement minime entraine un clé de hash totalement différente
+
+                  hash("Lorem")
+                  => 46887654313434
+
+                  hash("lorem")
+                  => 139836146678832
+
+
+#### 🔹 Comparer l’identité d’un objet avec son hash
+
+L’une des fonctions de hachage les plus simples qu’on puisse imaginer en Python est la fonction intégrée id(),
+qui te donne l’identité d’un objet.
+
+Dans l’interpréteur Python standard, cette identité correspond à l’adresse mémoire de l’objet, exprimée sous forme d’entier :
+
+                        >>> id("Lorem")
+                        139836146678832
+
+La fonction id() possède la plupart des propriétés souhaitées d’une fonction de hachage :
+- Elle est trés rapide
+- Elle fonctionne avec n'importe quelle entrée
+- Elle renvoie un entier de taille fixe de facon deterministe.
+
+De plus, tu ne peux pas facilement retrouver l’objet original à partir de son adresse mémoire.
+
+Les adresses mémoire elles-mêmes sont immutables pendant la durée de vie d’un objet, et sont quelque peu aléatoires entre différentes exécutions de l’interpréteur.
+
+Alors pourquoi Python insiste-t-il pour utiliser une autre fonction que id() pour le hachage ?
+
+1. Tout d’abord, l’intention de id() est différente de celle de hash().
+D'autres implémentations de Python pourraient définir l'identité des objets d'une autre manière
+
+2. Ensuite, les adresses mémoires sont prévisibles et ne sont pas uniformément réparties- ce qui les rends inadaptées et peu sûres pour le hachage.
+
+3. Enfin, deux objets égaux devraient normalement produire le même code de hachage, même s’ils ont des identités distinctes (equals & hashcode)
+
+En programmation, il faut distinguer deux notions : Identité et Egalité
+
+| Notion       | Signification                                    | Exemple                                              |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------- |
+| **Identité** | Est-ce le *même objet* en mémoire ?              | `is` en Python, `==` pour les références en Java     |
+| **Égalité**  | Est-ce que les *valeurs contenues* sont égales ? | `==` en Python (via `__eq__`), ou `equals()` en Java |
+
+      a = [1, 2, 3]
+      b = [1, 2, 3]
+
+      identité => print(a is b)  # False → objets différents en mémoire
+      Egalité  => print(a == b)  # True  → mêmes valeurs
+
+Pourquoi “égaux → même hash” ?
+
+Une fonction de hachage sert souvent à ranger ou comparer des objets dans des structures comme :
+- une table de hachage (dict en Python, HashMap en Java),
+- un set (ensemble),
+- ou toute structure basée sur le hash.
+
+Quand tu mets un objet dans une de ces structures, elle calcule son hash pour savoir où le stocker.
+
+Puis, pour vérifier s’il existe déjà, elle compare la clé de hash et, si besoin, l’égalité logique (equals() ou __eq__).
+
+👉 Si deux objets sont égaux (a.equals(b) ou a == b), ils doivent produire le même code de hachage.
+
+Sinon, la table les rangera à deux endroits différents — donc elle ne les reconnaîtra pas comme égaux.
+
+
+## 🔹 Créer ta propre fonction de hachage
